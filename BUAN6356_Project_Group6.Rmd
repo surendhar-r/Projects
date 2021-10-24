@@ -1,0 +1,390 @@
+---
+title: "BUAN_6356_Project_Group6"
+output: pdf_document
+editor_options: 
+  chunk_output_type: inline
+---
+### Group Members: Betim Begzati, Charles Huff, Surendhar Radhakrishnan, Parisa Shahsavand, Neeraj Varakantam
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r Load packages}
+if(!require("pacman")) install.packages("pacman")
+pacman::p_load(data.table, ggplot2, caret, corrplot, reshape, MASS,                 forecast, pROC, formatR, GGally, gplots, reshape2,
+               leaps, rpart, rpart.plot, rattle, randomForest, gbm,
+               tree, ISLR, ROCR, Metrics, gmodels)
+
+theme_set(theme_classic())
+```
+
+
+```{r Read data}
+#read data using data.table
+shop <- fread("online_shoppers_intention.csv") 
+
+dim(shop)
+str(shop)
+head(shop,3)
+summary(shop)
+
+#dropping columns that aren't described in the source
+shop <- shop[,c("OperatingSystems", "Browser", "Region", 
+        "TrafficType") := NULL]
+
+#checking for missing values
+sapply(shop, function(x)all(is.na(x)))
+colSums(is.na(shop))
+colSums(shop == "")
+```
+None of the columns have missing values.
+
+```{r Exploratory Data Analysis}
+#correlation plot
+shop.cor <- shop[, -c("VisitorType","Weekend", "Month")]
+setnames(shop.cor, old = c("Administrative_Duration", 
+                           "Informational_Duration", 
+                           "ProductRelated_Duration"),
+         new = c("Admin_Dur","Info_Dur", "Prod_Dur"))
+
+corrplot(cor(shop.cor), method = "pie", type = "upper",
+         order = "hclust",
+         tl.srt = 45)
+mtext("Correlation Plot", line=1.5, cex=2)
+
+#scatter plot matrix
+pairs(shop.cor, lower.panel = NULL, main="Scatter Plot Matrix")
+
+#Checking percentage of Revenue
+prop.table(table(shop$Revenue))*100
+
+#percentage of users
+prop.table(table(shop$VisitorType))*100
+
+#percentage of visits 
+prop.table(table(shop$Weekend))*100
+
+#cross tables
+CrossTable(shop$Month,shop$Revenue)
+CrossTable(shop$VisitorType,shop$Revenue)
+CrossTable(shop$Weekend,shop$Revenue)
+
+#histogram charts  
+hist(shop$SpecialDay, main="Frequency Distribution of SpecialDay")
+hist(shop$ProductRelated, main ="")
+hist(shop$ProductRelated_Duration, 
+     main = "Frequency Distribution of Product Related_Duration")
+hist(shop$Informational, 
+     main = "Frequency Distribution of Informational")
+hist(shop$Informational_Duration, 
+     main = "Frequency Distribution of Informational_Duration")
+hist(shop$Administrative, 
+     main = "Frequency Distribution of Administrative")
+hist(shop$Administrative_Duration, 
+     main = "Frequency Distribution of Administrative_Duration")
+hist(shop$PageValues, main="Frequency Distribution of PageValues")
+hist(shop$BounceRates,
+     main = "Frequency Distribution of Bounce Rates")
+hist(shop$ExitRates, main = "Frequency Distribution of ExitRates")
+
+#shop[, Revenue:= ifelse(Revenue==TRUE,1,0)]
+shop$Revenue <- as.factor(shop$Revenue)
+shop$Weekend <- as.factor(shop$Weekend)
+shop$Month  <-  as.factor(shop$Month)
+shop$VisitorType <- as.factor(shop$VisitorType)
+
+ggplot(shop) +
+  geom_bar(aes(Revenue), fill ="navy", width = 0.2) + 
+  ylab("Count") + ggtitle("Revenue Distribution")
+
+ggplot(shop) +
+  geom_bar(aes(Month, fill= Revenue), width = 0.4) +
+  ylab("Count") + ggtitle("Month Distribution")
+
+ggplot(shop) +
+  geom_bar(aes(VisitorType, fill= Revenue), width =.4) +
+  ylab("Count") + ggtitle("Visitor Type Distribution")
+
+#more EDA using data.table
+buy <- shop[Revenue== TRUE, length(Revenue)]
+print(paste("The number of visitors who made a purchase: ", buy))
+
+returning <- shop[Revenue== TRUE & VisitorType== 
+                  "Returning_Visitor", length(Revenue)]
+print(paste("Visitors who purchased that are returning visitors: " 
+            ,returning))
+
+newvis <- shop[Revenue== TRUE & VisitorType== 
+                  "New_Visitor", length(Revenue)]
+print(paste("Visitors who purchased that are new visitors: " 
+            ,newvis))
+
+# Page values box plot
+ggplot(shop) +
+  geom_boxplot(aes(PageValues), 
+               fill = "gold1", outlier.color = "firebrick2") + 
+  ggtitle("Outliers in Page Values") + coord_flip()
+
+#huge chunk of data is/close to 0. small iqr
+
+ggplot(shop) +
+  geom_boxplot(aes(BounceRates), 
+               fill = "gold1", outlier.color = "firebrick2") + 
+  ggtitle("Bounce Rates Outliers") + coord_flip()
+#just like previous one
+
+ggplot(shop) +
+  geom_boxplot(aes(ExitRates), 
+               fill = "gold2", outlier.color = "firebrick2") + 
+  ggtitle("Exit Rate Outliers?") + coord_flip()
+#iqr comparatively higher
+
+ggplot(shop) +
+  geom_boxplot(aes(SpecialDay), 
+               fill = "gold3", outlier.color = "firebrick2") + 
+  ggtitle("Outliers in Special Day?") + coord_flip()
+# a lot less outliers here
+
+
+```
+
+
+```{r Data partition}
+shop.df <- setDF(shop)
+set.seed(123)
+train.index <- createDataPartition(shop.df$Revenue, p= .75,
+                                   list= FALSE)
+train.df <- shop.df[train.index, ]
+valid.df <- shop.df[-train.index, ]
+
+```
+
+
+```{r Logistic regression}
+shop_logit <- glm(Revenue ~ ., data = train.df, 
+                  family = "binomial")
+
+options(scipen=999)
+summary(shop_logit)
+
+# Generate odds-ratios
+exp(coef(shop_logit))
+
+#confusion matrix
+shop_logit1_pred <- predict(shop_logit, valid.df[,-14])
+
+table(valid.df$Revenue, shop_logit1_pred > 0.5)
+
+#pchisq test
+print(sigmod1 <- (1- pchisq(7968.8-5404.7, 9247-9225)))
+```
+Confusion matrix:
+
+        FALSE TRUE
+  FALSE  2573   32
+  TRUE    323  154
+  
+Accuracy = 88.5%
+NIR = 84.52%
+Sensitivity = 32.3%
+Specificity = 98.77%
+Precision = 82.8%
+Recall = 32.3%
+
+```{r Model subset}
+#stepwise selection 
+shop_subset <- stepAIC(shop_logit, trace = 0)
+summary(shop_subset)
+
+shop_logit_subset <- glm(formula = Revenue ~ ProductRelated_Duration 
+                         + ExitRates + PageValues + Month + 
+                         VisitorType, family = "binomial", 
+                         data = train.df)
+
+#backward selection 
+shop_bselect <- stepAIC(shop_logit, direction = "backward", 
+                        trace = 0)
+summary(shop_bselect)
+
+```
+The best four predictors identified are: ProductRelated_Duration, ExitRates, PageValues, Month, VisitorType.
+
+
+```{r Logit subset with cv}
+#5-fold cross validation
+set.seed(123)
+tr <- trainControl(method = "cv", number = 5)
+
+shop_logit2 <- train(Revenue ~ ProductRelated_Duration 
+                         + ExitRates + PageValues + Month + 
+                         VisitorType,
+                     data= train.df, method= 'glm', trControl= tr)
+
+shop_logit2
+summary(shop_logit2)
+shop_logit2$results
+shop_logit2$finalModel$coefficients
+
+#predict
+shop_logit2_pred <- predict(shop_logit2, valid.df[,-14], type = "prob")
+
+#confusion matrix
+table(valid.df$Revenue, shop_logit2_pred[,2] > 0.5)
+
+#pchisq test
+print(sigmod1 <- (1- pchisq(7968.8-5409.6, 9247-9233)))
+```
+Logit subset classification matrix:
+        FALSE TRUE
+  FALSE  2553   52
+  TRUE    290  187
+  
+Accuracy = 88.9%
+Sensitivity = 39.20%
+Specificity = 98%
+Precision = 78.24%
+NIR = 84.52%
+Recall = 39.20%
+
+```{r importance plot logit subset}
+plot(varImp(shop_logit2, scale = TRUE))
+```
+
+
+```{r Logit with repeated cv}
+#5-fold repated cross validation
+set.seed(123)
+tr3 <- trainControl(method = "cv", number = 10, #repeats = 3,
+                   verboseIter = FALSE)
+
+shop_logit3 <- train(Revenue ~ + ProductRelated_Duration + ExitRates 
+                     +PageValues +Month 
+                     + VisitorType,
+                     data= train.df, method= 'glm', trControl= tr3)
+
+shop_logit3
+summary(shop_logit3)
+shop_logit3$results
+shop_logit3$finalModel$coefficients
+
+#predict
+shop_logit3_pred <- predict(shop_logit3, valid.df[,-14], type = "prob")
+
+#confusion matrix
+table(valid.df$Revenue, shop_logit2_pred[,2] > 0.5)
+```
+Running a model with repeated cross-validation produces the same result.
+
+
+```{r ROC curve for base logit and logit subset}
+predshop <- predict(shop_logit,valid.df[,-14]) #base logit
+predshop2 <- predict(shop_logit2,valid.df[,-14]) #logit subset
+predictor2 <- as.numeric(predshop)
+predictor3 <- as.numeric(predshop2)
+
+#library(pROC)
+
+pROC_obj2 <- roc(valid.df$Revenue, predictor2,
+            smoothed = TRUE,
+            ci=TRUE, ci.alpha=0.9, stratified=FALSE,
+            plot=TRUE, auc.polygon=TRUE, max.auc.polygon=TRUE, grid=TRUE,
+            print.auc=TRUE, show.thres=TRUE)
+
+pROC_obj3 <- roc(valid.df$Revenue, predictor3,
+            smoothed = TRUE,
+            ci=TRUE, ci.alpha=0.9, stratified=FALSE,
+            plot=TRUE, auc.polygon=TRUE, max.auc.polygon=TRUE, grid=TRUE,
+            print.auc=TRUE, show.thres=TRUE,
+            )
+
+sens.ci2 <- ci.se(pROC_obj2)
+sens.ci3 <- ci.se(pROC_obj3)
+
+plot(sens.ci3, type = "shape", col="lightblue") + plot(sens.ci2, type = "shape", col = "lightblue", title = "Model 2 ROC") + title(main = "ROC Curves Comparison")
+
+roc.test(pROC_obj2, pROC_obj3)
+```
+
+
+```{r Decision trees}
+default.ct <- rpart(Revenue ~ ., data = train.df, method = "class")
+prp(default.ct, type = 5, extra = 1, under = TRUE, roundint = FALSE, 
+    split.font = 2, varlen = -10, box.palette = "RdGn", digits = -3)
+rpart.rules(default.ct, cover = TRUE)
+
+#performance evaluation
+# for Validation set
+default.ct.point.pred.valid <- predict(default.ct, 
+                                       newdata = valid.df, 
+                                       type = "class")
+# confusionMatrix
+table(valid.df$Revenue, default.ct.point.pred.valid)
+
+#better accuracy here compared to logistic reg of 88% also model is better than NIR
+```
+From the classification matrix:
+        FALSE TRUE
+  FALSE  2470  135
+  TRUE    174  303
+
+Accuracy = 89.97%
+Sensitivity = 63.52%
+Specificity = 94.82%
+Precision = 69.18%
+NIR = 84.52%
+Recall = 63.52%
+
+```{r Best-Pruned tree}
+#pruning
+options(digits = 5)
+set.seed(123)
+cv.ct <- rpart(Revenue ~ ., data = train.df, method = "class",
+               cp = 0.00001, minsplit = 50, xval = 5)
+printcp(cv.ct)  
+
+#5 is best pruned tree at cp=.0.009085 
+best.ct <- rpart(Revenue ~ ., data = train.df, method = "class",
+                    cp= .009085)
+prp(best.ct, type = 3, extra = 100, yesno = 2, under = TRUE, 
+    roundint = FALSE, split.font = 2, varlen = -10, 
+    box.palette = "OrGn", compress = FALSE, ycompress = FALSE,
+    tweak = 1.1, digits = -3)
+rpart.rules(best.ct, cover = TRUE)
+```
+Best pruned tree with 4 splits, cp = .009085.
+
+
+```{r Random forest}
+#randomforest
+set.seed(123)
+
+rf.shop <- randomForest(Revenue~., data = train.df, mtry=4, importance = TRUE)
+rf.shop
+
+yhat.rf <- predict(rf.shop, newdata = valid.df[-14])
+
+#confusion matrix
+table(valid.df[,14], yhat.rf)
+
+# variable importance
+importance(rf.shop)
+varImpPlot(rf.shop, main = "Which Variables Are Important?")
+
+```
+
+Random Forest Confusion Matrix measures:
+        FALSE TRUE
+  FALSE  2501  104
+  TRUE    198  279
+  
+Accuracy = 90.2%
+NIR = 84.5%
+Sensitivity = 58.49%
+Specificity = 96.01%
+Precision = 72.85%
+Recall = 58.49%
+
+The most important variables are PageValues, ProductRelated_Duration, ExitRates.
+
+Random Forest generates the model with highest accuracy of 90.2% among other models.
+
