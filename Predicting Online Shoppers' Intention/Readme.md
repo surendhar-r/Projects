@@ -9,16 +9,16 @@ This dataset was sourced from UC Irvine Machine Learning Repository: http://arch
 The online_shoppers_intention dataset has 12,330 sessions and 18 attributes (10 numerical and 8 categorical) of different users in a one-year period. Of the 12,330 sessions, 84.5% were class of non-interest samples that did not result in a conversion (i.e., Revenue = NO), while the rest were class of interest and did result in a conversion (i.e., Revenue = YES). Each record belongs to a different user in a one-year period without any bias to a particular user, campaign, special day, or month. For unknown reasons, the dataset did not include the months January and April, and they were assumed insignificant.
 
 The 18 attributes are defined here:
-Administrative, Administrative_Duration, Informational, Informational_Duration, ProductRelated, ProductRelated_Duration - depict the different types of pages visited and the amount of time spent in seconds of each category
-BounceRates – the percentage of visitors who enter the site and then leave without visiting any other pages
-ExitRates – the percentage of last page views for a specific webpage
-PageValues – the average value for a webpage that a user visited before completing a transaction. This value indicates the importance of a particular web page based on Google Analytics.
-SpecialDay – visit made on or near a holiday. The value will take a maximum value of 1 on the day of the holiday and will take a fractional value in the days preceding and following the holiday.
-Month –month the visit was made
-VisitorType –visitor is new or returning
-Weekend –visit was made on the weekend or on a weekday
-Revenue – signifies whether a purchase was made by a customer or not. This is the target variable.
-OperatingSytems, Browser, Region, TrafficType – categorical data that is numerically represented, but definition of their values is missing.
+Administrative, Administrative_Duration, Informational, Informational_Duration, ProductRelated, ProductRelated_Duration - depict the different types of pages visited and the amount of time spent in seconds of each category <br>
+BounceRates – the percentage of visitors who enter the site and then leave without visiting any other pages<br>
+ExitRates – the percentage of last page views for a specific webpage<br>
+PageValues – the average value for a webpage that a user visited before completing a transaction. This value indicates the importance of a particular web page based on Google Analytics.<br>
+SpecialDay – visit made on or near a holiday. The value will take a maximum value of 1 on the day of the holiday and will take a fractional value in the days preceding and following the holiday.<br>
+Month –month the visit was made<br>
+VisitorType –visitor is new or returning<br>
+Weekend –visit was made on the weekend or on a weekday<br>
+Revenue – signifies whether a purchase was made by a customer or not. This is the target variable.<br>
+OperatingSytems, Browser, Region, TrafficType – categorical data that is numerically represented, but definition of their values is missing.<br>
 
 ## Preprocessing Data
 
