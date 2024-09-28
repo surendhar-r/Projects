@@ -32,3 +32,10 @@ casual: count of casual users<br>
 registered: count of registered users<br> 
 cnt: count of total rental bikes including both casual and registered<br> 
 
+## Empirical Analysis
+
+The dataset was partitioned into two sets, 75% for training and 25% for testing. The data is analyzed using a simple linear regression model with one key predictor variable.
+
+## Conclusion
+
+The analysis reveals a significant 65% increase in bike rentals from 2011 to 2012, suggesting growing popularity in bike-sharing services. The data further indicates that demand for bikes is strongly influenced by weather conditions, with rentals increasing as temperatures rise and on days with clearer skies. A simple linear regression model confirms that temperature is a key predictor of bike rentals, showing a positive correlation between higher temperatures and the number of bikes rented. This finding emphasizes the role of favorable weather in driving bike rental demand.
