@@ -13,7 +13,7 @@ The data has been aggregated on a daily basis, and the corresponding weather and
 
 instant: record index<br> 
 dteday : date<br> 
-season : season (1: springe, 2: summer, 3: fall, 4: winter)<br> 
+season : season (1: spring, 2: summer, 3: fall, 4: winter)<br> 
 yr : year (0: 2011, 1: 2012)<br> 
 mnth : month (1 to 12)<br> 
 holiday : weather day is holiday or not (extracted from http://dchr.dc.gov/page/holiday-schedule)<br> 
